@@ -53,13 +53,22 @@ def _load_artefacts():
     model_path  = os.path.join(MODEL_DIR, "isolation_forest.pkl")
     scaler_path = os.path.join(MODEL_DIR, "scaler.pkl")
     if not os.path.exists(model_path) or not os.path.exists(scaler_path):
-        raise FileNotFoundError(
-            "Model not found. Run  python main.py --train  first."
-        )
+        raise FileNotFoundError("Model not found.")
     return joblib.load(model_path), joblib.load(scaler_path)
 
 
-model, scaler = _load_artefacts()
+def _ensure_artefacts():
+    """Load model; if missing or incompatible (e.g. pickle version mismatch), retrain."""
+    try:
+        return _load_artefacts()
+    except Exception as exc:
+        print(f"[app] Could not load model ({exc}). Retraining ...")
+        from train import train
+        train()
+        return _load_artefacts()
+
+
+model, scaler = _ensure_artefacts()
 
 products_df = pd.read_csv(os.path.join(DATA_DIR, "products.csv"))
 outlets_df  = pd.read_csv(os.path.join(DATA_DIR, "outlets.csv"))
